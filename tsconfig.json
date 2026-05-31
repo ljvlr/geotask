@@ -1,0 +1,28 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ],
+      "@/assets/*": [
+        "./assets/*"
+      ]
+    }
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    "src/context/TaskContext.jsx",
+    "src/app/_layout.jsx",
+    "src/app/(tabs)/_layout.jsx",
+    "src/app/(tabs)/dashboard.jsx",
+    "src/app/map.jsx",
+    "src/app/(tabs)/archive.jsx",
+    "src/app/index.jsx",
+    "src/app/(tabs)/settings.jsx",
+    "src/app/admin.jsx",
+    "src/app/(tabs)/master-map.jsx"
+  ]
+}
