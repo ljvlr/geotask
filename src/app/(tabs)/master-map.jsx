@@ -1,14 +1,15 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { StyleSheet, View } from 'react-native';
-import MapView, { Marker } from 'react-native-maps';
+import { WebView } from 'react-native-webview';
 import * as Location from 'expo-location';
 import { useTaskContext } from '../../context/TaskContext';
 
 export default function MasterMapScreen() {
   const { tasks } = useTaskContext();
-  const [userLocation, setUserLocation] = useState(null);
+  const [userLocation, setUserLocation] = useState({ latitude: 10.3539, longitude: 123.9115 });
+  const webViewRef = useRef(null);
 
-  const activeTasks = tasks.filter(t => !t.completed);
+  const activeTasks = tasks ? tasks.filter(t => !t.completed) : [];
 
   useEffect(() => {
     (async () => {
@@ -23,37 +24,55 @@ export default function MasterMapScreen() {
     })();
   }, []);
 
+  const markersJs = activeTasks.map(task => {
+    const lat = task.latitude || 10.3539;
+    const lng = task.longitude || 123.9115;
+    const title = task.title ? task.title.replace(/"/g, '\\"') : 'Task';
+    const desc = task.description ? task.description.replace(/"/g, '\\"') : '';
+    return `L.marker([${lat}, ${lng}]).bindPopup("<b>${title}</b><br>${desc}").addTo(map);`;
+  }).join('\n');
+
+  const mapHtml = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+      <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+      <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+      <style>
+        body { margin: 0; padding: 0; }
+        #map { height: 100vh; width: 100vw; }
+      </style>
+    </head>
+    <body>
+      <div id="map"></div>
+      <script>
+        var map = L.map('map').setView([${userLocation.latitude}, ${userLocation.longitude}], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          maxZoom: 19
+        }).addTo(map);
+        
+        ${markersJs}
+      </script>
+    </body>
+    </html>
+  `;
+
   return (
     <View style={styles.container}>
-      <MapView
+      <WebView
+        key={activeTasks.length}
+        ref={webViewRef}
+        originWhitelist={['*']}
+        source={{ html: mapHtml }}
         style={styles.map}
-        initialRegion={{
-          latitude: userLocation ? userLocation.latitude : 10.3539,
-          longitude: userLocation ? userLocation.longitude : 123.9115,
-          latitudeDelta: 0.05,
-          longitudeDelta: 0.05,
-        }}
-        showsUserLocation
-      >
-        {activeTasks.map(task => (
-          <Marker 
-            key={task.id} 
-            coordinate={{ latitude: task.latitude, longitude: task.longitude }} 
-            title={task.title}
-            description={task.description}
-            pinColor="#6366f1"
-          />
-        ))}
-      </MapView>
+        javaScriptEnabled={true}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  map: {
-    flex: 1,
-  }
+  container: { flex: 1 },
+  map: { flex: 1 }
 });
